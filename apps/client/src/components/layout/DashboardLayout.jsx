@@ -18,7 +18,8 @@ import {
   FileCode2,
   FileText,
   PenTool,
-  BellRing
+  BellRing,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import useAuthStore from '../../store/authStore';
@@ -85,6 +86,8 @@ const DashboardLayout = ({ children, role }) => {
                     </div>
                     <NavItem icon={<Users />} label="Users" to="/dashboard/admin/users" active={location.pathname === '/dashboard/admin/users'} collapsed={!sidebarOpen} />
                     <NavItem icon={<BarChart3 />} label="Analytics" to="/dashboard/admin/analytics" active={location.pathname === '/dashboard/admin/analytics'} collapsed={!sidebarOpen} />
+                    <NavItem icon={<Code2 />} label="Script Update" to="/dashboard/admin/scripts" active={location.pathname === '/dashboard/admin/scripts'} collapsed={!sidebarOpen} />
+                    <NavItem icon={<RefreshCw />} label="System Update" to="/dashboard/admin/updates" active={location.pathname === '/dashboard/admin/updates'} collapsed={!sidebarOpen} />
                     <NavItem icon={<ShieldCheck />} label="Security" to="/dashboard/admin/security" active={location.pathname === '/dashboard/admin/security'} collapsed={!sidebarOpen} />
                     <NavItem icon={<BellRing />} label="Notifications" to="/dashboard/admin/notifications" active={location.pathname === '/dashboard/admin/notifications'} collapsed={!sidebarOpen} />
                 </>

@@ -1,6 +1,7 @@
 const User = require('./User.model');
 const Pen = require('./Pen.model');
 const Post = require('./Post.model');
+const GlobalScript = require('./GlobalScript.model');
 
 User.hasMany(Pen, { foreignKey: 'userId', as: 'pens' });
 Pen.belongsTo(User, { foreignKey: 'userId', as: 'user' });
@@ -12,4 +13,5 @@ module.exports = {
   User,
   Pen,
   Post,
+  GlobalScript,
 };

@@ -6,6 +6,10 @@ import Dashboard from './pages/Dashboard'
 import MyProjects from './pages/MyProjects'
 import PublicPen from './pages/PublicPen'
 import AdminNotifications from './pages/admin/Notifications'
+import UserManagement from './pages/admin/UserManagement'
+import Analytics from './pages/admin/Analytics'
+import ScriptManagement from './pages/admin/ScriptManagement'
+import UpdateWebsite from './pages/admin/UpdateWebsite'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import BlogList from './pages/blog/BlogList'
 import BlogPost from './pages/blog/BlogPost'
@@ -66,7 +70,14 @@ function App() {
           <Route path="/dashboard/posts" element={<MyPosts />} />
           <Route path="/dashboard/posts/new" element={<CreateEditPost />} />
           <Route path="/dashboard/posts/edit/:id" element={<CreateEditPost />} />
+          
+          {/* Admin Routes */}
+          <Route path="/dashboard/admin/users" element={<UserManagement />} />
+          <Route path="/dashboard/admin/analytics" element={<Analytics />} />
+          <Route path="/dashboard/admin/scripts" element={<ScriptManagement />} />
+          <Route path="/dashboard/admin/updates" element={<UpdateWebsite />} />
           <Route path="/dashboard/admin/notifications" element={<AdminNotifications />} />
+          
           <Route path="/dashboard/:role/editor" element={<Editor />} />
           <Route path="/dashboard/:role/editor/:id" element={<Editor />} />
         </Route>
