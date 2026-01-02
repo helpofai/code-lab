@@ -1,5 +1,3 @@
-
-i want to build codepen clone, Recommended Tech Stack 
 🌐 Frontend
 
 React + Vite → fast, modern UI
@@ -22,7 +20,6 @@ JWT Authentication
 
 PM2 → keep backend running on VPS . 
 
-use mysql database: db-name=code-lab, db-user=code-lab, db-pass=code-lab.
 
 
 code-lab/
