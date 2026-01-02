@@ -23,13 +23,25 @@ const getLocalVersion = () => {
 const checkUpdate = async (req, res, next) => {
     try {
         const local = getLocalVersion();
-        const response = await axios.get(`${GITHUB_API}/commits/main`, {
+        
+        // Fetch latest commit
+        const commitResponse = await axios.get(`${GITHUB_API}/commits/main`, {
             headers: { 'Accept': 'application/vnd.github.v3+json' }
         });
+        const latestCommit = commitResponse.data;
 
-        const latestCommit = response.data;
-        const isUpdateAvailable = local.commit !== latestCommit.sha;
+        // Fetch remote package.json to get version
+        let remoteVersion = local.version;
+        try {
+            const pkgResponse = await axios.get(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/package.json`);
+            remoteVersion = pkgResponse.data.version;
+        } catch (e) {
+            console.error('Failed to fetch remote version, using commit check only');
+        }
 
+        const isUpdateAvailable = local.commit !== latestCommit.sha || local.version !== remoteVersion;
+
+        // Fetch files changed
         const commitDetails = await axios.get(`${GITHUB_API}/commits/${latestCommit.sha}`);
         const filesChanged = commitDetails.data.files.map(f => ({
             filename: f.filename,
@@ -43,6 +55,7 @@ const checkUpdate = async (req, res, next) => {
         res.json({
             current: local,
             latest: {
+                version: remoteVersion,
                 commit: latestCommit.sha,
                 message: latestCommit.commit.message,
                 date: latestCommit.commit.author.date

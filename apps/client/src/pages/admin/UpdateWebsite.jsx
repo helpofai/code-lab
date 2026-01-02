@@ -151,7 +151,7 @@ const UpdateWebsite = () => {
                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                                     {status === 'idle' && "Check for Updates"}
                                     {status === 'checking' && "Checking Server..."}
-                                    {status === 'available' && "New Version Available!"}
+                                    {status === 'available' && `New Version Available! (v${updateInfo?.latest?.version || '?.?.?'})`}
                                     {status === 'up-to-date' && "System is Up to Date"}
                                     {status === 'downloading' && "Downloading Files..."}
                                     {status === 'extracted' && "Update Ready"}
@@ -298,7 +298,7 @@ const UpdateWebsite = () => {
                 <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-500/20">
                     <HardDriveDownload size={32} className="mb-4 opacity-50" />
                     <h3 className="font-bold text-lg mb-2">Current Version</h3>
-                    <p className="text-3xl font-black mb-4">v1.0.0</p>
+                    <p className="text-3xl font-black mb-4">v{updateInfo?.current?.version || '1.0.0'}</p>
                     <div className="space-y-2 text-sm opacity-80">
                         <div className="flex justify-between">
                             <span>Status</span>
