@@ -34,9 +34,18 @@ const checkUpdate = async (req, res, next) => {
         let remoteVersion = local.version;
         try {
             const pkgResponse = await axios.get(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/package.json`);
-            remoteVersion = pkgResponse.data.version;
+            const remotePkgVersion = pkgResponse.data.version;
+            
+            // Also try to fetch remote version.json as it's our source of truth
+            const versionResponse = await axios.get(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/version.json`);
+            const remoteVersionJsonVersion = versionResponse.data.version;
+
+            // Pick the highest version found remotely
+            remoteVersion = remotePkgVersion;
+            if (remoteVersionJsonVersion > remoteVersion) remoteVersion = remoteVersionJsonVersion;
+            
         } catch (e) {
-            console.error('Failed to fetch remote version, using commit check only');
+            console.error('Failed to fetch remote version metadata');
         }
 
         const isUpdateAvailable = local.commit !== latestCommit.sha || local.version !== remoteVersion;
