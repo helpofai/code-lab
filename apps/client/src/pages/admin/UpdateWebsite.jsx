@@ -287,7 +287,7 @@ const UpdateWebsite = () => {
                             File Changes
                         </h3>
                         <div className="space-y-3">
-                            {updateInfo.filesChanged.map((file, i) => (
+                            {updateInfo?.filesChanged?.map((file, i) => (
                                 <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-transparent hover:border-indigo-500/20 transition-all">
                                     <div className="flex items-center gap-3">
                                         <FileCode size={16} className="text-slate-400" />

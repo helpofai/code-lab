@@ -1,12 +1,10 @@
 const axios = require('axios');
-const fs = require('fs-extra'); // Switch to fs-extra for easier moving
+const fs = require('fs-extra');
 const path = require('path');
 const AdmZip = require('adm-zip');
 
-// Install fs-extra in the next step
 const REPO_OWNER = 'helpofai';
 const REPO_NAME = 'code-lab';
-const GITHUB_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
 
 const PROJECT_ROOT = path.join(__dirname, '../../../../');
 const PKG_FILE = path.join(PROJECT_ROOT, 'package.json');
@@ -18,17 +16,14 @@ const getLocalVersionMetadata = () => {
     let commit = 'unknown';
     
     try {
-        // Read from package.json first (Standard)
         const pkg = JSON.parse(fs.readFileSync(PKG_FILE, 'utf8'));
         version = pkg.version;
     } catch (e) {}
 
     try {
-        // Overlay with version.json if exists (Commit tracking)
         if (fs.existsSync(VERSION_FILE)) {
             const vJson = JSON.parse(fs.readFileSync(VERSION_FILE, 'utf8'));
             if (vJson.commit) commit = vJson.commit;
-            // If version.json has a higher version, use it
             if (vJson.version && vJson.version > version) version = vJson.version;
         }
     } catch (e) {}
@@ -60,12 +55,18 @@ const checkUpdate = async (req, res, next) => {
             const pkgResponse = await axios.get(`https://raw.githubusercontent.com/${owner}/${repo}/main/package.json`);
             remoteVersion = pkgResponse.data.version;
         } catch (e) {}
-        const filesChanged = commitDetails.data.files.map(f => ({
+
+        const isUpdateAvailable = local.commit !== latestCommit.sha || local.version !== remoteVersion;
+
+        // Fetch commit details for file changes
+        const commitDetails = await axios.get(`${githubApiUrl}/commits/${latestCommit.sha}`);
+        
+        const filesChanged = commitDetails.data.files ? commitDetails.data.files.map(f => ({
             filename: f.filename,
             status: f.status,
             additions: f.additions,
             deletions: f.deletions
-        }));
+        })) : [];
 
         const isDbUpdateRequired = filesChanged.some(f => f.filename.includes('apps/server/src/models/'));
 
@@ -82,6 +83,7 @@ const checkUpdate = async (req, res, next) => {
             filesChanged
         });
     } catch (error) {
+        console.error('Check Update Error:', error.message);
         next(error);
     }
 };
@@ -90,11 +92,7 @@ const syncDatabase = async (req, res, next) => {
     try {
         const { sequelize } = require('../config/db');
         require('../models');
-        
-        console.log('Manually syncing database...');
-        // Using alter: true carefully here as it's a triggered action
         await sequelize.sync({ alter: true });
-        
         res.json({ message: 'Database schema synchronized successfully.' });
     } catch (error) {
         next(error);
@@ -104,13 +102,14 @@ const syncDatabase = async (req, res, next) => {
 const downloadUpdate = async (req, res, next) => {
     try {
         const { commitSha } = req.body;
-        const zipUrl = `https://github.com/${REPO_OWNER}/${REPO_NAME}/archive/${commitSha}.zip`;
+        const owner = process.env.GITHUB_OWNER || REPO_OWNER;
+        const repo = process.env.GITHUB_REPO || REPO_NAME;
+        const zipUrl = `https://github.com/${owner}/${repo}/archive/${commitSha}.zip`;
         const zipPath = path.join(TEMP_DIR, 'update.zip');
 
         if (fs.existsSync(TEMP_DIR)) fs.removeSync(TEMP_DIR);
         fs.ensureDirSync(TEMP_DIR);
 
-        console.log('Downloading ZIP from:', zipUrl);
         const response = await axios({
             url: zipUrl,
             method: 'GET',
@@ -125,7 +124,6 @@ const downloadUpdate = async (req, res, next) => {
                 const zip = new AdmZip(zipPath);
                 zip.extractAllTo(TEMP_DIR, true);
                 
-                // GitHub ZIPs contain a root folder: repo-commitSha
                 const extractedFolders = fs.readdirSync(TEMP_DIR).filter(f => f !== 'update.zip');
                 const updateFolderName = extractedFolders[0]; 
                 const updatePath = path.join(TEMP_DIR, updateFolderName);
@@ -149,33 +147,20 @@ const downloadUpdate = async (req, res, next) => {
 const applyUpdate = async (req, res, next) => {
     try {
         const { commitSha, updatePath } = req.body;
-
         if (!fs.existsSync(updatePath)) {
             return res.status(400).json({ message: 'Update files not found. Download first.' });
         }
-
-        console.log('Applying update from:', updatePath);
-        
-        // Move files from extracted folder to project root
-        // fs-extra move with overwrite
         fs.copySync(updatePath, PROJECT_ROOT, { overwrite: true });
-
-        // Update version.json
+        
+        // Optional: Update local version.json metadata
         const newVersion = {
-            version: "1.0.1", 
             commit: commitSha,
             lastUpdate: new Date().toISOString()
         };
         fs.writeFileSync(VERSION_FILE, JSON.stringify(newVersion, null, 2));
 
-        // Clean up
         fs.removeSync(TEMP_DIR);
-
-        res.json({ message: 'Update applied successfully. System files updated.', version: newVersion });
-        
-        // Optionally: Trigger process exit to let PM2/Nodemon restart
-        // setTimeout(() => process.exit(0), 1000);
-
+        res.json({ message: 'Update applied successfully.' });
     } catch (error) {
         next(error);
     }
