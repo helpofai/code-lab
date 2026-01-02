@@ -19,6 +19,19 @@ const UpdateWebsite = () => {
   const [status, setStatus] = useState('idle'); // idle, checking, available, up-to-date, downloading, extracted, applying, success
   const [dbSyncing, setDbSyncing] = useState(false);
   const [updateData, setUpdateData] = useState(null);
+  const [localVersion, setLocalVersion] = useState(null);
+
+  useEffect(() => {
+      const fetchVersion = async () => {
+          const token = useAuthStore.getState().token;
+          const res = await fetch('/api/updates/version', {
+              headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          setLocalVersion(data);
+      };
+      fetchVersion();
+  }, []);
 
   const handleDbSync = async () => {
       setDbSyncing(true);
@@ -298,7 +311,7 @@ const UpdateWebsite = () => {
                 <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-500/20">
                     <HardDriveDownload size={32} className="mb-4 opacity-50" />
                     <h3 className="font-bold text-lg mb-2">Current Version</h3>
-                    <p className="text-3xl font-black mb-4">v{updateInfo?.current?.version || '1.0.0'}</p>
+                    <p className="text-3xl font-black mb-4">v{localVersion?.version || '...'}</p>
                     <div className="space-y-2 text-sm opacity-80">
                         <div className="flex justify-between">
                             <span>Status</span>

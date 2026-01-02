@@ -9,49 +9,57 @@ const REPO_NAME = 'code-lab';
 const GITHUB_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
 
 const PROJECT_ROOT = path.join(__dirname, '../../../../');
+const PKG_FILE = path.join(PROJECT_ROOT, 'package.json');
 const VERSION_FILE = path.join(PROJECT_ROOT, 'version.json');
 const TEMP_DIR = path.join(PROJECT_ROOT, 'temp_update');
 
-const getLocalVersion = () => {
+const getLocalVersionMetadata = () => {
+    let version = '1.0.0';
+    let commit = 'unknown';
+    
     try {
-        return JSON.parse(fs.readFileSync(VERSION_FILE, 'utf8'));
-    } catch (e) {
-        return { version: '1.0.0', commit: 'initial' };
-    }
+        // Read from package.json first (Standard)
+        const pkg = JSON.parse(fs.readFileSync(PKG_FILE, 'utf8'));
+        version = pkg.version;
+    } catch (e) {}
+
+    try {
+        // Overlay with version.json if exists (Commit tracking)
+        if (fs.existsSync(VERSION_FILE)) {
+            const vJson = JSON.parse(fs.readFileSync(VERSION_FILE, 'utf8'));
+            if (vJson.commit) commit = vJson.commit;
+            // If version.json has a higher version, use it
+            if (vJson.version && vJson.version > version) version = vJson.version;
+        }
+    } catch (e) {}
+
+    return { version, commit };
+};
+
+const getCurrentVersion = async (req, res) => {
+    res.json(getLocalVersionMetadata());
 };
 
 const checkUpdate = async (req, res, next) => {
     try {
-        const local = getLocalVersion();
+        const local = getLocalVersionMetadata();
         
+        const owner = process.env.GITHUB_OWNER || REPO_OWNER;
+        const repo = process.env.GITHUB_REPO || REPO_NAME;
+        const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}`;
+
         // Fetch latest commit
-        const commitResponse = await axios.get(`${GITHUB_API}/commits/main`, {
+        const commitResponse = await axios.get(`${githubApiUrl}/commits/main`, {
             headers: { 'Accept': 'application/vnd.github.v3+json' }
         });
         const latestCommit = commitResponse.data;
 
-        // Fetch remote package.json to get version
+        // Fetch remote package.json
         let remoteVersion = local.version;
         try {
-            const pkgResponse = await axios.get(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/package.json`);
-            const remotePkgVersion = pkgResponse.data.version;
-            
-            // Also try to fetch remote version.json as it's our source of truth
-            const versionResponse = await axios.get(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/version.json`);
-            const remoteVersionJsonVersion = versionResponse.data.version;
-
-            // Pick the highest version found remotely
-            remoteVersion = remotePkgVersion;
-            if (remoteVersionJsonVersion > remoteVersion) remoteVersion = remoteVersionJsonVersion;
-            
-        } catch (e) {
-            console.error('Failed to fetch remote version metadata');
-        }
-
-        const isUpdateAvailable = local.commit !== latestCommit.sha || local.version !== remoteVersion;
-
-        // Fetch files changed
-        const commitDetails = await axios.get(`${GITHUB_API}/commits/${latestCommit.sha}`);
+            const pkgResponse = await axios.get(`https://raw.githubusercontent.com/${owner}/${repo}/main/package.json`);
+            remoteVersion = pkgResponse.data.version;
+        } catch (e) {}
         const filesChanged = commitDetails.data.files.map(f => ({
             filename: f.filename,
             status: f.status,
@@ -173,4 +181,4 @@ const applyUpdate = async (req, res, next) => {
     }
 };
 
-module.exports = { checkUpdate, downloadUpdate, applyUpdate, syncDatabase };
+module.exports = { checkUpdate, downloadUpdate, applyUpdate, syncDatabase, getCurrentVersion };
