@@ -19,6 +19,7 @@ const { errorHandler } = require('./middlewares/error.middleware');
 
 const app = express();
 
+app.set('trust proxy', 1); // Trust the first proxy (Nginx)
 app.use(cors());
 app.use(express.json());
 
